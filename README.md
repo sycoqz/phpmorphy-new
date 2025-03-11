@@ -35,6 +35,26 @@ Array
     [1] => FIGHT
 )
 ```
+
+```php
+// Падежы / grammes
+// 'Именительный' => 'ИМ',
+// 'Родительный' =>['РД',
+// 'Дательный' => 'ДТ',
+// 'Винительный' => 'ВН',
+// 'Творительный' => 'ТВ',
+// 'Предложный' => 'ПР',
+$morphy = new cijic\phpMorphy\Morphy('ru');
+$morphy->castFormByGramInfo('ДОМ', 'С', ['ДТ'], true);
+```
+result 
+```
+Array
+(
+    [0] => ДОМУ
+    [1] => ДОМАМ
+)
+```
 ## Laravel support
 ### Facade
 ``` php
