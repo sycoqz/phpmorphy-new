@@ -35,11 +35,24 @@ Array
     [1] => FIGHT
 )
 ```
-
+### Get all word forms
+```php
+$morphy = new cijic\phpMorphy\Morphy('ru');
+$morphy->getAllForms('ДОМ');
+```
+result 
+```
+Array
+(
+    [0] => ДОМУ
+    [1] => ДОМАМ
+)
+```
+### Get word by part of speech and grammems
 ```php
 // Падежы / grammes
 // 'Именительный' => 'ИМ',
-// 'Родительный' =>['РД',
+// 'Родительный' =>'РД',
 // 'Дательный' => 'ДТ',
 // 'Винительный' => 'ВН',
 // 'Творительный' => 'ТВ',
