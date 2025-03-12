@@ -1,13 +1,12 @@
-# cijic/phpmorphy
-
-[![Packagist Downloads](https://img.shields.io/packagist/dt/cijic/phpmorphy.svg)](https://packagist.org/packages/cijic/phpmorphy)
+# sycoqz/phpmorphy-new, The fork of cijic/phpmorphy
 
 phpMorphy --- morphological analyzer library for Russian, English, German and Ukrainian languages.  
-```cijic/phpMorphy``` is Laravel wrapper for phpMorphy library with PHP7 support.
+```sycoqz/phpmorphy-new``` is Laravel wrapper for phpMorphy library with PHP8 support.
 
 Source website (in russian): http://phpmorphy.sourceforge.net/  
 SF project: http://sourceforge.net/projects/phpmorphy  
-Wrapper on Github: https://github.com/cijic/phpmorphy
+Main wrapper on Github: https://github.com/cijic/phpmorphy
+Fork: https://github.com/sycoqz/phpmorphy-new
 
 This library allow retireve follow morph information for any word:
 - Base (normal) form
@@ -22,32 +21,38 @@ $ composer require cijic/phpmorphy
 ```
 
 ## Usage
-
 ```php
 $morphy = new cijic\phpMorphy\Morphy('en');
 print_r($morphy->getPseudoRoot('FIGHTY'));
+
+// result:
+// Array
+// (
+//   [0] => FIGHTY
+//   [1] => FIGHT
+// )
 ```
-result 
-```
-Array
-(
-    [0] => FIGHTY
-    [1] => FIGHT
-)
-```
-### Get all word forms
+
+### Get all the forms of the words
 ```php
 $morphy = new cijic\phpMorphy\Morphy('ru');
 $morphy->getAllForms('ДОМ');
+// result:
+// Array
+// (
+//   [0] => ДОМУ
+//   [1] => ДОМАМ
+// )
 ```
-result 
+
+### Get the plural form of the word
+```php
+$morphy = new cijic\phpMorphy\Morphy('ru');
+$morphy->getPluralForm('ОТЕЛЬ');
+// result:
+// string('ОТЕЛИ')
 ```
-Array
-(
-    [0] => ДОМУ
-    [1] => ДОМАМ
-)
-```
+
 ### Get word by part of speech and grammems
 ```php
 // Падежы / grammes
@@ -59,15 +64,13 @@ Array
 // 'Предложный' => 'ПР',
 $morphy = new cijic\phpMorphy\Morphy('ru');
 $morphy->castFormByGramInfo('ДОМ', 'С', ['ДТ'], true);
+// result:
+// (
+//   [0] => ДОМУ
+//   [1] => ДОМАМ
+// )
 ```
-result 
-```
-Array
-(
-    [0] => ДОМУ
-    [1] => ДОМАМ
-)
-```
+
 ## Laravel support
 ### Facade
 ``` php
@@ -87,11 +90,3 @@ Section ```aliases```
 ``` php
 'Morphy'    => cijic\phpMorphy\Facade\Morphy::class,
 ```
-## Contributing
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
-
-## Security
-If you discover any security related issues, please email altcode@ya.ru instead of using the issue tracker.
-
-## License
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
