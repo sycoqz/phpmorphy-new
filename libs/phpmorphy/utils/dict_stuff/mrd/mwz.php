@@ -1,52 +1,62 @@
 <?php
-class phpMorphy_Mwz_Exception extends Exception { }
 
-class phpMorphy_Mwz_File {
-    protected
-        $mwz_path,
-        $values = array();
-    
-    function __construct($filePath) {
+class phpMorphy_Mwz_Exception extends Exception {}
+
+class phpMorphy_Mwz_File
+{
+    protected $mwz_path;
+
+    protected $values = [];
+
+    public function __construct($filePath)
+    {
         $this->mwz_path = $filePath;
         $this->parseFile($filePath);
     }
-    
-    function export() {
+
+    public function export()
+    {
         return $this->values;
     }
-    
-    function keyExists($key) {
+
+    public function keyExists($key)
+    {
         return array_key_exists($key, $this->values);
     }
-    
-    function getValue($key) {
-        if(!$this->keyExists($key)) {
+
+    public function getValue($key)
+    {
+        if (! $this->keyExists($key)) {
             throw new phpMorphy_Mrd_Exception("Key $key not exists in mwz file '$this->mwz_path'");
         }
-        
+
         return $this->values[$key];
     }
-    
-    function getMrdPath() {
-        return dirname($this->mwz_path) . DIRECTORY_SEPARATOR . $this->getValue('MRD_FILE');
+
+    public function getMrdPath()
+    {
+        return dirname($this->mwz_path).DIRECTORY_SEPARATOR.$this->getValue('MRD_FILE');
     }
-    
-    function getEncoding() {
+
+    public function getEncoding()
+    {
         $lang = $this->getLanguage();
-        
-        if(false === ($default = $this->getEncodingForLang($lang))) {
+
+        if (false === ($default = $this->getEncodingForLang($lang))) {
             throw new phpMorphy_Mrd_Exception("Can`t determine encoding for '$lang' language");
         }
-        
+
         return $default;
     }
-    
-    function getLanguage() {
+
+    public function getLanguage()
+    {
         return strtolower($this->getValue('LANG'));
     }
-    
-    static function getEncodingForLang($lang) {
-        switch(strtolower($lang)) {
+
+    public static function getEncodingForLang($lang)
+    {
+        switch (strtolower($lang)) {
             case 'russian':
                 return 'windows-1251';
             case 'english':
@@ -57,31 +67,33 @@ class phpMorphy_Mwz_File {
                 return false;
         }
     }
-    
-    protected function parseFile($path) {
+
+    protected function parseFile($path)
+    {
         try {
             $lines = iterator_to_array($this->openFile($path));
         } catch (Exception $e) {
-            throw new phpMorphy_Mrd_Exception("Can`t open $path mwz file '$path': " . $e->getMessage());
+            throw new phpMorphy_Mrd_Exception("Can`t open $path mwz file '$path': ".$e->getMessage());
         }
-        
-        foreach(array_map('trim', $lines) as $line) {
+
+        foreach (array_map('trim', $lines) as $line) {
             $pos = strcspn($line, " \t");
-            
-            if($pos !== strlen($line)) {
+
+            if ($pos !== strlen($line)) {
                 $key = trim(substr($line, 0, $pos));
                 $value = trim(substr($line, $pos + 1));
-                
-                if(strlen($key)) {
+
+                if (strlen($key)) {
                     $this->values[$key] = $value;
                 }
-            } elseif(strlen($line)) {
+            } elseif (strlen($line)) {
                 $this->values[$line] = null;
             }
         }
     }
-    
-    protected function openFile($file) {
+
+    protected function openFile($file)
+    {
         return new SplFileObject($file);
     }
 }
