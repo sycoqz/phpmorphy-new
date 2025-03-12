@@ -1,47 +1,52 @@
 <?php
-interface ConstNames_Interface {
-	function getPartsOfSpeech();
-	function getGrammems();
-}
 
-abstract class ConstNames_Base implements ConstNames_Interface {
-	protected function combineObjAndArray($obj, $ary) {
+use Interfaces\ConstNamesInterface;
+
+abstract class ConstNames_Base implements ConstNamesInterface {
+    /**
+     * @throws Exception
+     */
+    protected function combineObjAndArray($obj, $ary): array
+    {
 		$result = array();
-		
+
 		foreach($obj as $k => $v) {
 			if(!isset($ary[$v])) {
 				throw new Exception("Can`t find short name for $k(id = $v)");
 			}
-			
+
 			$name = $this->convertLongName($k);
 			$short_name = $this->convertShortName($ary[$v]);
-			
+
 			$result[] = array(
 				'id' => $v,
 				'long_name' => $name,
 				'short_name' => $short_name
 			);
 		}
-		
+
 		return $result;
 	}
-	
-	protected function convertLongName($name) {
+
+	protected function convertLongName($name): string
+    {
 		return $this->lmb_under_scores(substr($name, 1));
 	}
 
-	protected function convertShortName($name) {
+	protected function convertShortName($name): string
+    {
 		return mb_convert_case($name, MB_CASE_UPPER, 'utf-8');
 	}
-	
-	private function lmb_under_scores($str) {
+
+	private function lmb_under_scores($str): string
+    {
 		$items = preg_split('~([A-Z][a-z0-9]+)~', $str, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
 		$res = '';
-		
+
 		foreach($items as $item) {
 			$res .= ($item == '_' ? '' : '_') . strtoupper($item);
 		}
-		
+
 		return substr($res, 1);
 	}
 }
@@ -51,18 +56,18 @@ function dump_xml_file($lang, $outDir, $grammemsPrefix, $posesPrefix) {
 	$out_file = "$outDir/$lang.xml";
 	$clazz = 'ConstNames_' . ucfirst($lang);
 	$php_file = dirname(__FILE__) . '/' . $lang . '.php';
-	
+
 	require_once($php_file);
-	
+
 	$obj = new $clazz();
-	
+
 	$writer = new XMLWriter();
 	$writer->openUri($out_file);
 	$writer->setIndent(true);
 	$writer->setIndentString("    ");
-	
+
 	$writer->startDocument('1.0', 'UTF-8');
-	
+
 	$writer->startElement('gramtab');
 	{
 		// parts of speech
@@ -77,7 +82,7 @@ function dump_xml_file($lang, $outDir, $grammemsPrefix, $posesPrefix) {
 			$writer->endElement();
 		}
 		$writer->endElement();
-		
+
 		// grammems
 		$writer->startElement('grammems');
 		$shift = 0;
@@ -88,7 +93,7 @@ function dump_xml_file($lang, $outDir, $grammemsPrefix, $posesPrefix) {
 				$writer->writeAttribute('const_name', $grammemsPrefix . $grammem['long_name']);
 				$writer->writeAttribute('id', $grammem['id']);
 				$writer->writeAttribute('shift', $shift);
-				
+
 				$shift++;
 			}
 			$writer->endElement();
@@ -96,7 +101,7 @@ function dump_xml_file($lang, $outDir, $grammemsPrefix, $posesPrefix) {
 		$writer->endElement();
 	}
 	$writer->endElement();
-	
+
 	$writer->endDocument();
 }
 

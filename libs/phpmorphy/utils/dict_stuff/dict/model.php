@@ -1,255 +1,316 @@
 <?php
-require_once(dirname(__FILE__) . '/../../libs/collections.php');
 
-class phpMorphy_Dict_Ancode {
-    protected
-        $id,
-        $grammems,
-        $pos,
-        $is_predict;
-    
-    function __construct($id, $pos, $isPredict, $grammems = null) {
-        //self::checkAncodeId($id, "Invalid ancode_id specified in ancode ctor");
-        
-        $this->grammems = new phpMorphy_Collection();
-        
-        if(is_string($grammems)) {
+use Interfaces\DictFlexiaInterface;
+use Interfaces\DictLemmaInterface;
+
+require_once dirname(__FILE__).'/../../libs/collections.php';
+
+class phpMorphy_Dict_Ancode
+{
+    protected $id;
+
+    protected phpMorphy_Collection $grammems;
+
+    protected $pos;
+
+    protected bool $is_predict;
+
+    /**
+     * @throws phpMorphy_Exception
+     */
+    public function __construct($id, $pos, bool $isPredict, $grammems = null)
+    {
+
+        $this->grammems = new phpMorphy_Collection;
+
+        if (is_string($grammems)) {
             $this->setGrammemsFromString($grammems);
-        } elseif(is_array($grammems)) {
+        } elseif (is_array($grammems)) {
             $this->grammems->import(new ArrayIterator($grammems));
-        } elseif(!is_null($grammems)) {
+        } elseif (! is_null($grammems)) {
             throw new phpMorphy_Exception('Invalid grammems given');
         }
-        
+
         $this->id = $id;
         $this->pos = $pos;
-        $this->is_predict = (bool)$isPredict;
+        $this->is_predict = $isPredict;
     }
-    
-/*
-    static function checkAncodeId($id, $prefix) {
-        if(strlen($id) != 2) {
-            throw new Exception("$prefix: Ancode must be exact 2 bytes long, '$id' given");
-        }
-    }
-*/
 
-    function getGrammems() {
+    /**
+     * @throws Exception
+     */
+    public function getGrammems(): ArrayIterator
+    {
         return $this->grammems->getIterator();
     }
-    
-    function setGrammemsFromString($grammems, $separator = ',') {
+
+    /**
+     * @throws phpMorphy_Exception
+     */
+    public function setGrammemsFromString($grammems, $separator = ','): void
+    {
         $this->grammems->import(new ArrayIterator(array_map('trim', explode(',', $grammems))));
     }
-    
-    function addGrammem($grammem) {
+
+    public function addGrammem($grammem): void
+    {
         $this->grammems->append($grammem);
     }
-    
-    function getId() { return $this->id; }
-    function getPartOfSpeech() { return $this->pos; }
-    function isPredict() { return $this->is_predict; }
-    
-    /*
-    protected function createStorageCollection() {
-        return new phpMorphy_Collection();
-    }
-    */
-}
 
-interface phpMorphy_Dict_Flexia_Interface {
-    function getPrefix();
-    function getSuffix();
-    function getAncodeId();
-    function setPrefix($prefix);
-}
-
-class phpMorphy_Dict_Flexia implements phpMorphy_Dict_Flexia_Interface {
-    protected
-        $prefix,
-        $suffix,
-        $ancode_id;
-    
-    function __construct($prefix, $suffix, $ancodeId) {
-        //phpMorphy_Dict_Ancode::checkAncodeId($ancodeId, "Invalid ancode specified for flexia");
-
-        $this->prefix = (string)$prefix;
-        $this->suffix = (string)$suffix;
-        $this->ancode_id = $ancodeId;
-    }
-    
-    function getPrefix() { return $this->prefix; }
-    function getSuffix() { return $this->suffix; }
-    function getAncodeId() { return $this->ancode_id; }
-    
-    function setPrefix($prefix) { $this->prefix = $prefix; }
-}
-
-class phpMorphy_Dict_FlexiaModel extends phpMorphy_Collection/*_Typed */{
-    protected
-        $id;
-        
-    function __construct($id) {
-        parent::__construct(/*$this->createStorageCollection(), 'phpMorphy_Dict_Flexia'*/);
-        $this->id = (int)$id;
-
-        if($this->id < 0) {
-            throw new Exception("Flexia model id must be positive int");
-        }
-    }
-    
-    function getId() {
+    public function getId()
+    {
         return $this->id;
     }
-    
-    function getFlexias() {
+
+    public function getPartOfSpeech()
+    {
+        return $this->pos;
+    }
+
+    public function isPredict(): bool
+    {
+        return $this->is_predict;
+    }
+}
+
+class phpMorphy_Dict_Flexia implements DictFlexiaInterface
+{
+    protected int $ancode_id;
+
+    protected string $suffix;
+
+    protected string $prefix;
+
+    public function __construct(string $prefix, string $suffix, int $ancodeId)
+    {
+        $this->prefix = $prefix;
+        $this->suffix = $suffix;
+        $this->ancode_id = $ancodeId;
+    }
+
+    public function getPrefix(): string
+    {
+        return $this->prefix;
+    }
+
+    public function getSuffix(): string
+    {
+        return $this->suffix;
+    }
+
+    public function getAncodeId(): int
+    {
+        return $this->ancode_id;
+    }
+
+    public function setPrefix($prefix): void
+    {
+        $this->prefix = $prefix;
+    }
+}
+
+class phpMorphy_Dict_FlexiaModel extends phpMorphy_Collection implements IteratorAggregate /* _Typed */
+{
+    protected int $id;
+
+    /**
+     * @throws Exception
+     */
+    public function __construct(int $id)
+    {
+        parent::__construct(/* $this->createStorageCollection(), 'phpMorphy_Dict_Flexia' */);
+        $this->id = $id;
+
+        if ($this->id < 0) {
+            throw new Exception('Flexia model id must be positive int');
+        }
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+
+    public function getFlexias(): array
+    {
         return iterator_to_array($this);
     }
-    
-    /*
-    protected function createStorageCollection() {
-        return new phpMorphy_Collection();
-    }
-    */
 }
 
-class phpMorphy_Dict_PrefixSet extends phpMorphy_Collection/*_Typed*/ {
-    protected
-        $id;
-    
-    function __construct($id) {
-        parent::__construct(/*$this->createStorageCollection(), 'string'*/);
-        
-        $this->id = (int)$id;
+class phpMorphy_Dict_PrefixSet extends phpMorphy_Collection /* _Typed */
+{
+    protected int $id;
 
-        if($this->id < 0) {
-            throw new Exception("Prefix set id must be positive int");
+    /**
+     * @throws Exception
+     */
+    public function __construct(int $id)
+    {
+        parent::__construct(/* $this->createStorageCollection(), 'string' */);
+
+        $this->id = $id;
+
+        if ($this->id < 0) {
+            throw new Exception('Prefix set id must be positive int');
         }
     }
-    
-    function getId() {
+
+    public function getId(): int
+    {
         return $this->id;
     }
-    
-    function getPrefixes() {
+
+    /**
+     * @throws Exception
+     */
+    public function getPrefixes(): ArrayIterator
+    {
         return $this->getIterator();
     }
-    
-    /*
-    protected function createStorageCollection() {
-        return new phpMorphy_Collection();
-    }
-    */
 }
 
-class phpMorphy_Dict_AccentModel extends phpMorphy_Collection/*_Typed*/ {
-    protected
-        $id;
-    
-    function __construct($id) {
-        parent::__construct(/*$this->createStorageCollection(), array('integer', 'NULL')*/);
-        
-        $this->id = (int)$id;
+class phpMorphy_Dict_AccentModel extends phpMorphy_Collection /* _Typed */
+{
+    protected int $id;
 
-        if($this->id < 0) {
-            throw new Exception("Accent model id must be positive int");
+    /**
+     * @throws Exception
+     */
+    public function __construct(int $id)
+    {
+        parent::__construct(/* $this->createStorageCollection(), array('integer', 'NULL') */);
+
+        $this->id = $id;
+
+        if ($this->id < 0) {
+            throw new Exception('Accent model id must be positive int');
         }
     }
-    
-    function append($offset) {
-        if($offset === null) {
+
+    public function append($value): void
+    {
+        if (! isset($value)) {
             $this->addEmptyAccent();
         } else {
-            parent::append((int)$offset);
+            parent::append($value);
         }
     }
-    
-    function addEmptyAccent() {
+
+    public function addEmptyAccent(): void
+    {
         parent::append(null);
     }
-    
-    static function isEmptyAccent($accent) {
-        return null === $accent;
+
+    public static function isEmptyAccent($accent): bool
+    {
+        return $accent === null;
     }
-    
-    function getId() {
+
+    public function getId(): int
+    {
         return $this->id;
     }
-    
-    function getAccents() {
+
+    /**
+     * @throws Exception
+     */
+    public function getAccents(): ArrayIterator
+    {
         return $this->getIterator();
     }
-    
-    /*
-    protected function createStorageCollection() {
-        return new phpMorphy_Collection();
-    }
-    */
 }
 
-interface phpMorphy_Dict_Lemma_Interface {
-    function setPrefixId($prefixId);
-    function setAncodeId($ancodeId);
-    function getBase();
-    function getFlexiaId();
-    function getAccentId();
-    function getPrefixId();
-    function getAncodeId();
-    function hasPrefixId();
-    function hasAncodeId();
-}
+class phpMorphy_Dict_Lemma implements DictLemmaInterface
+{
+    protected $prefix_id;
 
-class phpMorphy_Dict_Lemma implements phpMorphy_Dict_Lemma_Interface {
-    protected
-        $base,
-        $flexia_id,
-        $accent_id,
-        $prefix_id,
-        $ancode_id;
-    
-    function __construct($base, $flexiaId, $accentId) {
-        $this->base = (string)$base;
-        $this->flexia_id = (int)$flexiaId;
-        $this->accent_id = (int)$accentId;
+    protected string $base;
 
-        if($this->flexia_id < 0) {
-            throw new Exception("flexia_id must be positive int");
+    protected int $ancode_id;
+
+    protected int $accent_id;
+
+    protected int $flexia_id;
+
+    /**
+     * @throws Exception
+     */
+    public function __construct(string $base, int $flexiaId, int $accentId)
+    {
+        $this->base = $base;
+        $this->flexia_id = $flexiaId;
+        $this->accent_id = $accentId;
+
+        if ($this->flexia_id < 0) {
+            throw new Exception('flexia_id must be positive int');
         }
 
-        if($this->accent_id < 0) {
-            throw new Exception("accent_id must be positive int");
+        if ($this->accent_id < 0) {
+            throw new Exception('accent_id must be positive int');
         }
     }
-    
-    function setPrefixId($prefixId) {
-        if(is_null($prefixId)) {
-            throw new phpMorphy_Exception("NULL id specified");
-        }
-        
-        $this->prefix_id = (int)$prefixId;
 
-        if($this->prefix_id < 0) {
-            throw new Exception("prefix_id must be positive int");
+    /**
+     * @throws phpMorphy_Exception
+     * @throws Exception
+     */
+    public function setPrefixId(?int $prefixId): void
+    {
+        if (is_null($prefixId)) {
+            throw new phpMorphy_Exception('NULL id specified');
+        }
+
+        $this->prefix_id = $prefixId;
+
+        if ($this->prefix_id < 0) {
+            throw new Exception('prefix_id must be positive int');
         }
     }
-    
-    function setAncodeId($ancodeId) {
-        if(is_null($ancodeId)) {
-            throw new Exception("NULL id specified");
+
+    /**
+     * @throws Exception
+     */
+    public function setAncodeId(?int $ancodeId): void
+    {
+        if (is_null($ancodeId)) {
+            throw new Exception('NULL id specified');
         }
 
-        //phpMorphy_Dict_Ancode::checkAncodeId($ancodeId, "Invalid ancode specified for lemma");
-
-        
         $this->ancode_id = $ancodeId;
     }
-    
-    function getBase() { return $this->base; }
-    function getFlexiaId() { return $this->flexia_id; }
-    function getAccentId() { return $this->accent_id; }
-    function getPrefixId() { return $this->prefix_id; }
-    function getAncodeId() { return $this->ancode_id; }
-    
-    function hasPrefixId() { return isset($this->prefix_id); }
-    function hasAncodeId() { return isset($this->ancode_id); }
+
+    public function getBase(): string
+    {
+        return $this->base;
+    }
+
+    public function getFlexiaId(): int
+    {
+        return $this->flexia_id;
+    }
+
+    public function getAccentId(): int
+    {
+        return $this->accent_id;
+    }
+
+    public function getPrefixId(): int
+    {
+        return $this->prefix_id;
+    }
+
+    public function getAncodeId(): int
+    {
+        return $this->ancode_id;
+    }
+
+    public function hasPrefixId(): bool
+    {
+        return isset($this->prefix_id);
+    }
+
+    public function hasAncodeId(): bool
+    {
+        return isset($this->ancode_id);
+    }
 }

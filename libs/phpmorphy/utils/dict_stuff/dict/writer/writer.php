@@ -1,72 +1,82 @@
 <?php
-require_once(dirname(__FILE__) . '/../source/source.php');
 
-interface phpMorphy_Dict_Writer_Interface {
-    function write(phpMorphy_Dict_Source_Interface $source);
+use Interfaces\DictWriterObserverInterface;
+
+require_once dirname(__FILE__).'/../source/source.php';
+
+class phpMorphy_Dict_Writer_Observer_Empty implements DictWriterObserverInterface
+{
+    public function onStart() {}
+
+    public function onLog($message) {}
+
+    public function onEnd() {}
 }
 
-interface phpMorphy_Dict_Writer_Observer_Interface {
-    function onStart();
-    function onLog($message);
-    function onEnd();
-}
+class phpMorphy_Dict_Writer_Observer_Standart implements DictWriterObserverInterface
+{
+    protected $start_time;
 
-class phpMorphy_Dict_Writer_Observer_Empty implements phpMorphy_Dict_Writer_Observer_Interface {
-    function onStart() { }
-    function onLog($message) { }
-    function onEnd() { }
-}
-
-class phpMorphy_Dict_Writer_Observer_Standart implements phpMorphy_Dict_Writer_Observer_Interface {
-    protected
-        $start_time;
-
-    function __construct($callback) {
-        if(!is_callable($callback)) {
-            throw new Exception("Invalid callback");
+    /**
+     * @throws Exception
+     */
+    public function __construct($callback)
+    {
+        if (! is_callable($callback)) {
+            throw new Exception('Invalid callback');
         }
 
         $this->callback = $callback;
     }
 
-    function onStart() {
+    public function onStart(): void
+    {
         $this->start_time = microtime(true);
     }
 
-    function onEnd() {
-        $this->writeMessage(sprintf("Total time = %f", microtime(true) - $this->start_time));
+    public function onEnd(): void
+    {
+        $this->writeMessage(sprintf('Total time = %f', microtime(true) - $this->start_time));
     }
 
-    function onLog($message) {
-        $this->writeMessage(sprintf("+%0.2f %s", microtime(true) - $this->start_time, $message));
+    public function onLog($message): void
+    {
+        $this->writeMessage(sprintf('+%0.2f %s', microtime(true) - $this->start_time, $message));
     }
 
-    protected function writeMessage($msg) {
+    protected function writeMessage($msg): void
+    {
         call_user_func($this->callback, $msg);
     }
 }
 
-abstract class phpMorphy_Dict_Writer_Base {
+abstract class phpMorphy_Dict_Writer_Base
+{
     private $observer;
 
-    function __construct() {
-        $this->setObserver(new phpMorphy_Dict_Writer_Observer_Empty());
+    public function __construct()
+    {
+        $this->setObserver(new phpMorphy_Dict_Writer_Observer_Empty);
     }
 
-    function setObserver(phpMorphy_Dict_Writer_Observer_Interface $observer) {
+    public function setObserver(DictWriterObserverInterface $observer): void
+    {
         $this->observer = $observer;
     }
 
-    function hasObserver() {
+    public function hasObserver(): bool
+    {
         return isset($this->observer);
     }
 
-    function getObserver() {
+    public function getObserver()
+    {
         return $this->observer;
     }
 
-    protected function log($message) {
-        if($this->hasObserver()) {
+    protected function log($message): void
+    {
+        if ($this->hasObserver()) {
             $this->getObserver()->onLog($message);
         }
     }

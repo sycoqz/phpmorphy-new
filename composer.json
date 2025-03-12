@@ -22,5 +22,8 @@
         "psr-4": {
             "cijic\\phpMorphy\\": "src"
         }
+    },
+    "require-dev": {
+        "laravel/pint": "^1.21"
     }
 }
