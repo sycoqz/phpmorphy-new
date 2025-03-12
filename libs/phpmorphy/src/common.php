@@ -20,6 +20,9 @@
  * Boston, MA 02111-1307, USA.
  */
 
+use enums\Grammems;
+use enums\PartOfSpeech;
+
 if(!defined('PHPMORPHY_DIR')) {
     define('PHPMORPHY_DIR', dirname(__FILE__));
 }
@@ -37,7 +40,8 @@ class phpMorphy_Exception extends Exception { }
 // we need byte oriented string functions
 // with namespaces support we only need overload string functions in current namespace
 // but currently use this ugly hack.
-function phpmorphy_overload_mb_funcs($prefix) {
+function phpmorphy_overload_mb_funcs($prefix): void
+{
     $GLOBALS['__phpmorphy_strlen'] = "{$prefix}strlen";
     $GLOBALS['__phpmorphy_strpos'] = "{$prefix}strpos";
     $GLOBALS['__phpmorphy_strrpos'] = "{$prefix}strrpos";
@@ -54,52 +58,61 @@ if(2 == (ini_get('mbstring.func_overload') & 2)) {
 }
 
 class phpMorphy_FilesBundle {
-    protected
-        $dir,
-        $lang;
+    protected string $dir;
+    protected string $lang;
 
     public function __construct($dirName, $lang) {
         $this->dir = rtrim($dirName, "\\/" . DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
         $this->setLang($lang);
     }
 
-    public function getLang() {
+    public function getLang(): string
+    {
         return $this->lang;
     }
 
-    public function setLang($lang) {
+    public function setLang($lang): void
+    {
         $this->lang = $GLOBALS['__phpmorphy_strtolower']($lang);
     }
 
-    public function getCommonAutomatFile() {
+    public function getCommonAutomatFile(): string
+    {
         return $this->genFileName('common_aut');
     }
 
-    public function getPredictAutomatFile() {
+    public function getPredictAutomatFile(): string
+    {
         return $this->genFileName('predict_aut');
     }
 
-    public function getGramInfoFile() {
+    public function getGramInfoFile(): string
+    {
         return $this->genFileName('morph_data');
     }
 
-    public function getGramInfoAncodesCacheFile() {
+    public function getGramInfoAncodesCacheFile(): string
+    {
         return $this->genFileName('morph_data_ancodes_cache');
     }
 
-    public function getAncodesMapFile() {
+    public function getAncodesMapFile(): string
+    {
         return $this->genFileName('morph_data_ancodes_map');
     }
 
-    public function getGramTabFile() {
+    public function getGramTabFile(): string
+    {
         return $this->genFileName('gramtab');
     }
 
-    public function getGramTabFileWithTextIds() {
+    public function getGramTabFileWithTextIds(): string
+    {
         return $this->genFileName('gramtab_txt');
     }
 
-    public function getDbaFile($type) {
+    public function getDbaFile($type): string
+    {
         if(!isset($type)) {
             $type = 'db3';
         }
@@ -197,7 +210,7 @@ class phpMorphy {
     /**
      * @throws phpMorphy_Exception
      */
-    public function __construct($dir, $lang = null, $options = array()) {
+    public function __construct($dir, ?string $lang = null, array $options = []) {
         $this->options = $options = $this->repairOptions($options);
 
         // TODO: use two versions of phpMorphy class i.e. phpMorphy_v3 { } ... phpMorphy_v2 extends phpMorphy_v3
@@ -452,14 +465,14 @@ class phpMorphy {
      */
     protected function getDeclineByNumber(string $word, int $number): string
     {
-        $partOfSpeech = 'С';
+        $partOfSpeech = PartOfSpeech::NOUN;
 
         if ($number == 1) {
-            $grammems = ['ИМ', 'ЕД'];
+            $grammems = [Grammems::NOMINATIVE, Grammems::SINGULAR];
         } elseif ($number >= 2 && $number <= 4) {
-            $grammems = ['РД', 'ЕД'];
+            $grammems = [Grammems::GENITIVE, Grammems::SINGULAR];
         } else {
-            $grammems = ['РД', 'МН'];
+            $grammems = [Grammems::GENITIVE, Grammems::PLURAL];
         }
 
         $result = $this->castFormByGramInfo($word, $partOfSpeech, $grammems);
@@ -479,9 +492,9 @@ class phpMorphy {
      */
     public function getPluralForm(string $word): string
     {
-        $partOfSpeech = 'С';
+        $partOfSpeech = PartOfSpeech::NOUN;
 
-        $grammems = ['ИМ', 'МН'];
+        $grammems = [Grammems::NOMINATIVE, Grammems::PLURAL];
 
         $result = $this->castFormByGramInfo($word, $partOfSpeech, $grammems);
 
@@ -493,31 +506,31 @@ class phpMorphy {
     }
 
     /**
-     * @param string $word
-     * @param mixed $ancode
-     * @param mixed $commonAncode
-     * @param bool $returnOnlyWord
-     * @param mixed $callback
-     * @param mixed $type
-     * @return bool|array
+     * Склоняет слово по заданным анкодам.
+     *
+     * @param string $word Слово для склонения.
+     * @param string|int $ancode Анкод для склонения.
+     * @param string|int|null $commonAncode Общий анкод (опционально).
+     * @param bool $returnOnlyWord Если true, возвращает только слово, без дополнительной информации.
+     * @param callable|null $callback Callback-функция для обработки результата.
+     * @param int $type Тип обработки (например, self::NORMAL).
+     * @return array|bool Результат склонения или false в случае ошибки.
      */
-    public function castFormByAncode(string $word, $ancode, $commonAncode = null, bool $returnOnlyWord = false, $callback = null, $type = self::NORMAL): bool|array
+    public function castFormByAncode(string $word, string|int $ancode, string|int|null $commonAncode = null, bool $returnOnlyWord = false, ?callable $callback = null, int $type = self::NORMAL): array|bool
     {
         $resolver = $this->helper->getAncodesResolver();
+        $ancodeId = $resolver->unresolve($ancode);
+        $commonAncodeId = isset($commonAncode) ? $resolver->unresolve($commonAncode) : null;
+        [$partOfSpeech, $grammems] = $this->helper->getGrammemsAndPartOfSpeech($ancodeId);
 
-        $common_ancode_id = $resolver->unresolve($commonAncode);
-        $ancode_id = $resolver->unresolve($ancode);
-
-        $data = $this->helper->getGrammemsAndPartOfSpeech($ancode_id);
-
-        if(isset($common_ancode_id)) {
-            $data[1] = array_merge($data[1], $this->helper->getGrammems($common_ancode_id));
+        if (isset($commonAncodeId)) {
+            $grammems = array_merge($grammems, $this->helper->getGrammems($commonAncodeId));
         }
 
         return $this->castFormByGramInfo(
             $word,
-            $data[0],
-            $data[1],
+            $partOfSpeech,
+            $grammems,
             $returnOnlyWord,
             $callback,
             $type
@@ -525,16 +538,23 @@ class phpMorphy {
     }
 
     /**
-     * @param string $word
-     * @param mixed $partOfSpeech
-     * @param array $grammems
-     * @param bool $returnOnlyWord
-     * @param mixed $callback
-     * @param mixed $type
-     * @return bool|array
+     * Склоняет слово по заданным грамматическим характеристикам.
+     *
+     * @param string $word Слово для склонения.
+     * @param PartOfSpeech $partOfSpeech Часть речи.
+     * @param array<Grammems> $grammems Массив грамматических характеристик.
+     * @param bool $returnOnlyWord Если true, возвращает только слово, без дополнительной информации.
+     * @param callable|null $callback Callback-функция для обработки результата.
+     * @param int $type Тип обработки.
+     * @return array|bool Результат склонения или false в случае ошибки.
+     * @throws InvalidArgumentException Если массив $grammems содержит недопустимые элементы.
      */
-    public function castFormByGramInfo(string $word, mixed $partOfSpeech, array $grammems, bool $returnOnlyWord = false, $callback = null, $type = self::NORMAL): bool|array
+    public function castFormByGramInfo(string $word, PartOfSpeech $partOfSpeech, array $grammems, bool $returnOnlyWord = false, ?callable $callback = null, int $type = self::NORMAL): array|bool
     {
+        if (array_filter($grammems, fn($grammem) => !$grammem instanceof Grammems)) {
+            throw new InvalidArgumentException("All elements in \$grammems must be instances of Grammems.");
+        }
+
         if(false === ($annot = $this->getAnnotForWord($word, $type))) {
             return false;
         }
@@ -551,7 +571,7 @@ class phpMorphy {
      * @param mixed $type
      * @return bool|array
      */
-    public function castFormByPattern(string $word, string $patternWord, phpMorphy_GrammemsProvider_Interface $grammemsProvider = null, bool $returnOnlyWord = false, $callback = null, $type = self::NORMAL): bool|array
+    public function castFormByPattern(string $word, string $patternWord, ?phpMorphy_GrammemsProvider_Interface $grammemsProvider = null, bool $returnOnlyWord = false, $callback = null, $type = self::NORMAL): bool|array
     {
         if(false === ($word_annot = $this->getAnnotForWord($word, $type))) {
             return false;
@@ -599,48 +619,52 @@ class phpMorphy {
         return $this->__word_descriptor_serializer->serialize($collection, $asText);
     }
 
-    protected function invoke($method, string|array $word, $type) {
+    /**
+     * Вызов метода морфологического анализа для слова или массива слов.
+     *
+     * @param string $method Название метода для вызова.
+     * @param string|array $word Слово или массив слов для анализа.
+     * @param int $type Тип обработки (ONLY_PREDICT, IGNORE_PREDICT и т.д.).
+     * @return array|mixed Результат анализа.
+     */
+    protected function invoke(string $method, string|array $word, int $type): mixed
+    {
         $this->last_prediction_type = self::PREDICT_BY_NONE;
 
-        if($type === self::ONLY_PREDICT) {
-            if(is_array($word)) {
-                $result = array();
-
-                foreach($word as $w) {
-                    $result[$w] = $this->predictWord($method, $w);
-                }
-
-                return $result;
-            } else {
-                return $this->predictWord($method, $word);
-            }
+        // Если тип ONLY_PREDICT, сразу вызываем predictWord
+        if ($type === self::ONLY_PREDICT) {
+            return is_array($word)
+                ? array_map(fn($w) => $this->predictWord($method, $w), $word)
+                : $this->predictWord($method, $word);
         }
 
-        if(is_array($word)) {
+        // Обработка массива слов
+        if (is_array($word)) {
             $result = $this->__bulk_morphier->$method($word);
 
-            if($type !== self::IGNORE_PREDICT) {
-                $not_found = $this->__bulk_morphier->getNotFoundWords();
-
-                for($i = 0, $c = count($not_found); $i < $c; $i++) {
-                    $word = $not_found[$i];
-
-                    $result[$word] = $this->predictWord($method, $word);
+            // Если не игнорировать предсказания, обрабатываем не найденные слова
+            if ($type !== self::IGNORE_PREDICT) {
+                $notFoundWords = $this->__bulk_morphier->getNotFoundWords();
+                foreach ($notFoundWords as $notFoundWord) {
+                    $result[$notFoundWord] = $this->predictWord($method, $notFoundWord);
                 }
             } else {
-                for($i = 0, $c = count($not_found); $i < $c; $i++) {
-                    $result[$not_found[$i]] = false;
+                foreach ($this->__bulk_morphier->getNotFoundWords() as $notFoundWord) {
+                    $result[$notFoundWord] = false;
                 }
             }
 
-        } else {
-            if(false === ($result = $this->__common_morphier->$method($word))) {
-                if($type !== self::IGNORE_PREDICT) {
-                    return $this->predictWord($method, $word);
-                }
-            }
-
+            return $result;
         }
+
+        // Обработка одного слова
+        $result = $this->__common_morphier->$method($word);
+
+        // Если результат false и не игнорировать предсказания, вызываем predictWord
+        if ($result === false && $type !== self::IGNORE_PREDICT) {
+            return $this->predictWord($method, $word);
+        }
+
         return $result;
     }
 
