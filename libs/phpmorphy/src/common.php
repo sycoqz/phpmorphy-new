@@ -436,7 +436,7 @@ class phpMorphy
      * @param  int  $number  Число.
      * @return string Склоненное слово.
      */
-    protected function getDeclineByNumber(string $word, int $number): string
+    public function getDeclineByNumber(string $word, int $number): string
     {
         $partOfSpeech = PartOfSpeech::NOUN;
 
