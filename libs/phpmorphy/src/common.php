@@ -433,19 +433,30 @@ class phpMorphy
      * Склоняет существительное в зависимости от числа.
      *
      * @param  string  $word  Слово для склонения.
-     * @param  int  $number  Число.
+     * @param  float|int  $number  Число.
      * @return string Склоненное слово.
      */
-    public function getDeclineByNumber(string $word, int $number): string
+    public function getDeclineByNumber(string $word, float|int $number): string
     {
         $partOfSpeech = PartOfSpeech::NOUN;
 
-        if ($number == 1) {
-            $grammems = [Grammems::NOMINATIVE, Grammems::SINGULAR];
-        } elseif ($number >= 2 && $number <= 4) {
+        $number = abs($number);
+
+        if (! is_int($number)) {
             $grammems = [Grammems::GENITIVE, Grammems::SINGULAR];
         } else {
-            $grammems = [Grammems::GENITIVE, Grammems::PLURAL];
+            $lastTwoDigits = $number % 100;
+            $lastDigit = $number % 10;
+
+            if ($lastTwoDigits > 4 && $lastTwoDigits < 20) {
+                $grammems = [Grammems::GENITIVE, Grammems::PLURAL];
+            } elseif ($lastDigit === 1) {
+                $grammems = [Grammems::NOMINATIVE, Grammems::SINGULAR];
+            } elseif ($lastDigit >= 2 && $lastDigit <= 4) {
+                $grammems = [Grammems::GENITIVE, Grammems::SINGULAR];
+            } else {
+                $grammems = [Grammems::GENITIVE, Grammems::PLURAL];
+            }
         }
 
         $result = $this->castFormByGramInfo($word, $partOfSpeech, $grammems);
@@ -454,7 +465,7 @@ class phpMorphy
             return $result[0]['form'];
         }
 
-        return $word;
+        return $this->convertToNormalForm($word);
     }
 
     /**
@@ -475,7 +486,12 @@ class phpMorphy
             return $result[0]['form'];
         }
 
-        return $word;
+        return $this->convertToNormalForm($word);
+    }
+
+    protected function convertToNormalForm(string $word): string
+    {
+        return mb_ucfirst(mb_strtolower($word));
     }
 
     /**
