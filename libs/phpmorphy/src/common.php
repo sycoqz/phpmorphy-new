@@ -483,7 +483,7 @@ class phpMorphy
         $result = $this->castFormByGramInfo($word, $partOfSpeech, $grammems);
 
         if ($result && isset($result[0]['form'])) {
-            return $result[0]['form'];
+            return $this->convertToNormalForm($result[0]['form']);
         }
 
         return $this->convertToNormalForm($word);
